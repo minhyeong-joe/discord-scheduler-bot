@@ -1,4 +1,10 @@
-const { createEvent, showEvents, joinEvent } = require('./bot.js');
+const {
+    createEvent,
+    showEvents,
+    joinEvent,
+    leaveEvent,
+    deleteEvent
+} = require('./bot.js');
 
 // prefix for bot commands
 const PREFIX = "$";
@@ -20,7 +26,7 @@ const commands = {
         description: 'Create an event at specified time.\nEvent name with spaces must be enclosed in double quotes (ie. "event name with spaces").\n**Valid Time Formats:** "yyyy-mm-dd hh:mm am/pm", "hh:mm am/pm", "hhAM/PM".\n**Examples:** "2020-12-5 7:00 PM", "2020-12-5 7pm", "7pm", "7:00 PM" (*default to TODAY if no date provided*) ',
         execute: createEvent
     },
-    
+
     // $show
     show: {
         alias: "show",
@@ -38,7 +44,15 @@ const commands = {
     // $leave <event_num>
     leave: {
         alias: "leave",
-        description: "Leaves the event associated with *<event_num>* (as shown in list of events)."
+        description: "Leaves the event associated with *<event_num>* (as shown in list of events).",
+        execute: leaveEvent
+    },
+
+    // $remove <event_num>
+    remove: {
+        alias: "remove",
+        description: "(**Schedule Admin** only) Removes an event associated with *<event_num>* (as shown in list of events).",
+        execute: deleteEvent
     },
 
     // $mention <event_num> <message:optional> OR $@ <event_num> <message:optional>
@@ -50,11 +64,11 @@ const commands = {
 };
 
 // help embeded
-const embededHelp = {embed: {
-    color: 3447003,
-    title: "Schduler Bot Commands",
-    fields: [
-        {
+const embededHelp = {
+    embed: {
+        color: 3447003,
+        title: "Schduler Bot Commands",
+        fields: [{
             name: `${PREFIX}${commands.help.alias}`,
             value: commands.help.description
         },
@@ -77,9 +91,17 @@ const embededHelp = {embed: {
         {
             name: `${PREFIX}${commands.mention.alias} *<event_num>* *<message:optional>* \n${PREFIX}${commands.mention.alt} *<event_num>* *<message:optional>*`,
             value: commands.mention.description
+        },
+        {
+            name: `${PREFIX}${commands.remove.alias} *<event_num>*`,
+            value: commands.remove.description
         }
-    ]
-}};
+        ]
+    }
+};
 
 
-module.exports = { PREFIX, commands };
+module.exports = {
+    PREFIX,
+    commands
+};

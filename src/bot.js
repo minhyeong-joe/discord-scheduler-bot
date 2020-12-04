@@ -46,7 +46,7 @@ const createEvent = (message, args) => {
     (async () => {
         try {
             const res = await newEvent.save();
-            message.channel.send(`@everyone **${message.author.tag}** created an event **${res.event_name}** ${res.max_occupancy? '(1/' + res.max_occupancy + ')': ''} - ${moment(res.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
+            message.channel.send(`@everyone **${message.author.tag}** created an event **${res.event_name}** ${res.max_occupancy ? '(1/' + res.max_occupancy + ')' : ''} - ${moment(res.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
         } catch (error) {
             console.error(error.message);
             message.reply("❌ Server-side error occurred. Please try again");
@@ -62,7 +62,7 @@ const showEvents = (message) => {
         const eventFields = events.map((event, index) => {
             const members = event.members.join(", ");
             return {
-                name: `${index+1}. ${event.event_name} ${event.max_occupancy? '(' + event.members.length + '/' + event.max_occupancy + ')' : ''}`,
+                name: `${index + 1}. ${event.event_name} ${event.max_occupancy ? '(' + event.members.length + '/' + event.max_occupancy + ')' : ''}`,
                 value: `${moment(event.time).local().format("YYYY-MM-DD ddd h:mm A")}\n**Participants: **${members}`
             }
         });
@@ -85,18 +85,11 @@ const joinEvent = (message, args) => {
     const eventNum = parseInt(args[0]);
     // fetch all server events
     fetchEvents(message.guild.id, (events) => {
-        if (events.length === 0) {
-            message.reply(`❌ There is no active event.`);
-            return;
-        }
-        // if out of range
-        if (eventNum > events.length) {
-            message.reply(`❌ Please select between 1 and ${events.length}`);
-            return;
-        }
-        console.log(events);
         const selectedEvent = events[eventNum - 1];
-        console.log(selectedEvent);
+        if (!selectedEvent) {
+            message.reply("❌ Given event number does not exist.");
+            return;
+        }
         // check for duplicate join
         // if (selectedEvent.members.includes(message.author.tag)) {
         //     message.reply("❌ You are already in the selected event.");
@@ -110,15 +103,9 @@ const joinEvent = (message, args) => {
         // add to the members
         (async () => {
             try {
-                const updatedEvent = await event.findOneAndUpdate({
-                    _id: selectedEvent._id
-                }, {
-                    members: [...selectedEvent.members, message.author.tag]
-                }, {
-                    new: true
-                });
+                const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: [...selectedEvent.members, message.author.tag] }, { new: true });
                 console.log(updatedEvent);
-                message.channel.send(`**${message.author.tag}** joined **${updatedEvent.event_name}** ${updatedEvent.max_occupancy? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')': ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
+                message.channel.send(`**${message.author.tag}** joined **${updatedEvent.event_name}** ${updatedEvent.max_occupancy ? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')' : ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
             } catch (error) {
                 console.error(error.message);
                 message.reply("❌ Failed to join the event. Please try again later.");
@@ -129,13 +116,81 @@ const joinEvent = (message, args) => {
 };
 
 // leave an event if participating
-// const leaveEvent = (message, args) => {
-//     if (isNaN(args[0]) || parseInt(args[0]) <= 0) {
-//         message.reply("❌ Invalid *event_num* argument");
-//         return;
-//     }
-//     const eventNum = parseInt(args[0]);
-// };
+const leaveEvent = (message, args) => {
+    if (isNaN(args[0]) || parseInt(args[0]) <= 0) {
+        message.reply("❌ Invalid *event_num* argument");
+        return;
+    }
+    const eventNum = parseInt(args[0]);
+    // fetch all server events
+    fetchEvents(message.guild.id, (events) => {
+        const selectedEvent = events[eventNum - 1];
+        if (!selectedEvent) {
+            message.reply("❌ Given event number does not exist.");
+            return;
+        }
+        // check if you are one of the members
+        if (!selectedEvent.members.includes(message.author.tag)) {
+            message.reply("❌ You are not a member in the given event.");
+            return;
+        }
+        // remove member from event and update
+        (async () => {
+            try {
+                const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: selectedEvent.members.filter(member => member !== message.author.tag) }, { new: true });
+                message.channel.send(`**${message.author.tag}** left **${updatedEvent.event_name}** ${updatedEvent.max_occupancy ? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')' : ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
+                // if event becomes empty after last member leaves, disband the event
+                if (updatedEvent.members.length < 1) {
+                    try {
+                        const deletedEvent = await event.findByIdAndDelete(updatedEvent._id);
+                        message.channel.send(`**${deletedEvent.event_name}** (${moment(deletedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")}) has been removed :poop:`);
+                    } finally { }
+                }
+            } catch (error) {
+                console.error(error.message);
+                message.reply("❌ Server-side error occurred. Please try again");
+            }
+        })();
+    });
+};
+
+// delete an event
+const deleteEvent = (message, args) => {
+    const adminRole = message.guild.roles.cache.find(r => r.name === 'Schedule Admin');
+    // "Schedule Admin" does not exist in the server
+    if (!adminRole) {
+        message.channel.send(":warning: Please create a role named 'Schedule Admin' first.");
+        return;
+    }
+    // check if user has "Schedule Admin" role
+    if (!message.member._roles.includes(adminRole.id)) {
+        message.channel.send("❌ You do not have permission.");
+        return;
+    }
+    // validate argument
+    if (isNaN(args[0]) || parseInt(args[0]) <= 0) {
+        message.reply("❌ Invalid *event_num* argument");
+        return;
+    }
+    const eventNum = parseInt(args[0]);
+    // fetch all events
+    fetchEvents(message.guild.id, (events) => {
+        const selectedEvent = events[eventNum - 1];
+        if (!selectedEvent) {
+            message.reply("❌ Given event number does not exist.");
+            return;
+        }
+        (async () => {
+            try {
+                const deletedEvent = await event.findByIdAndDelete(selectedEvent._id);
+                message.channel.send(`**${deletedEvent.event_name}** (${moment(deletedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")}) has been removed :poop:`);
+            } catch (error) {
+                console.error(error.message);
+                message.reply("❌ Server-side error occurred. Please try again");
+            }
+        })();
+    });
+};
 
 // validate createEvent() arguments
 const validateCreateEvent = (args) => {
@@ -186,5 +241,7 @@ const fetchEvents = async (serverId, callback) => {
 module.exports = {
     createEvent,
     showEvents,
-    joinEvent
+    joinEvent,
+    leaveEvent,
+    deleteEvent
 };
