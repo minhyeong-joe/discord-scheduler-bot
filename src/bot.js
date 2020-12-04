@@ -1,6 +1,8 @@
 const event = require('./models/event.js');
 const moment = require('moment');
-const { events } = require('./models/event.js');
+const {
+    events
+} = require('./models/event.js');
 
 // create and add an event
 const createEvent = (message, args) => {
@@ -49,7 +51,7 @@ const createEvent = (message, args) => {
         event_name: args[0],
         members: [message.author.tag],
         time: time,
-        max_occupancy: args.length > 2? args[2] : null
+        max_occupancy: args.length > 2 ? args[2] : null
     });
     // save new event to DB
     (async () => {
@@ -66,26 +68,23 @@ const createEvent = (message, args) => {
 // show list of active events
 const showEvents = (message) => {
     // fetch events from DB
-    (async () => {
-        try {
-            const events = await event.find({server_id: message.guild.id});
-            const eventFields = events.map((event, index) => {
-                const members = event.members.join(", ");
-                return {
-                    name: `${index+1}. ${event.event_name} ${event.max_occupancy? '(' + event.members.length + '/' + event.max_occupancy + ')' : ''}`,
-                    value: `${moment(event.time).local().format("YYYY-MM-DD ddd h:mm A")}\n**Participants: **${members}`
-                }
-            });
-            message.channel.send({embed: {
+    fetchEvents(message.guild.id, (events) => {
+        // generate list view with returned events
+        const eventFields = events.map((event, index) => {
+            const members = event.members.join(", ");
+            return {
+                name: `${index+1}. ${event.event_name} ${event.max_occupancy? '(' + event.members.length + '/' + event.max_occupancy + ')' : ''}`,
+                value: `${moment(event.time).local().format("YYYY-MM-DD ddd h:mm A")}\n**Participants: **${members}`
+            }
+        });
+        message.channel.send({
+            embed: {
                 color: 3447003,
                 title: ":notepad_spiral: **List of Events**",
                 fields: eventFields
-            }});
-        } catch (error) {
-            console.error(error.message);
-            message.reply("❌ Server-side error occurred. Please try again");
-        }
-    })();
+            }
+        });
+    });
 }
 
 // join existing event if max_occupancy is not met
@@ -96,50 +95,74 @@ const joinEvent = (message, args) => {
     }
     const eventNum = parseInt(args[0]);
     // fetch all server events
-    (async () => {
-        try {
-            const events = await event.find({server_id: message.guild.id});
-            // if no events
-            if (events.length === 0) {
-                message.reply(`❌ There is no active event.`);
-                return;
-            }
-            // if out of range
-            if (eventNum > events.length) {
-                message.reply(`❌ Please select between 1 and ${events.length}`);
-                return;
-            }
-            console.log(events);
-            const selectedEvent = events[eventNum-1];
-            console.log(selectedEvent);
-            // check for duplicate join
-            // if (selectedEvent.members.includes(message.author.tag)) {
-            //     message.reply("❌ You are already in the selected event.");
-            //     return;
-            // }
-            // check for max_occupancy
-            if (selectedEvent.max_occupancy && selectedEvent.members.length >= selectedEvent.max_occupancy) {
-                message.reply(":slight_frown: The selected event is already full.");
-                return;
-            }
-            // add to the members
-            (async () => {
-                try {
-                    const updatedEvent = await event.findOneAndUpdate({_id: selectedEvent._id}, {members: [...selectedEvent.members, message.author.tag]}, {new:true});
-                    console.log(updatedEvent);
-                    message.channel.send(`**${message.author.tag}** joined **${updatedEvent.event_name}** ${updatedEvent.max_occupancy? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')': ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
-                } catch (error) {
-                    console.error(error.message);
-                    message.reply("❌ Failed to join the event. Please try again later.");
-                    return;
-                }
-            })();
-        } catch (error) {
-            console.error(error.message);
-            message.reply("❌ Failed to retrieve active events. Please try again later.");
+    fetchEvents(message.guild.id, (events) => {
+        if (events.length === 0) {
+            message.reply(`❌ There is no active event.`);
             return;
         }
-    })();
-}
+        // if out of range
+        if (eventNum > events.length) {
+            message.reply(`❌ Please select between 1 and ${events.length}`);
+            return;
+        }
+        console.log(events);
+        const selectedEvent = events[eventNum - 1];
+        console.log(selectedEvent);
+        // check for duplicate join
+        // if (selectedEvent.members.includes(message.author.tag)) {
+        //     message.reply("❌ You are already in the selected event.");
+        //     return;
+        // }
+        // check for max_occupancy
+        if (selectedEvent.max_occupancy && selectedEvent.members.length >= selectedEvent.max_occupancy) {
+            message.reply(":slight_frown: The selected event is already full.");
+            return;
+        }
+        // add to the members
+        (async () => {
+            try {
+                const updatedEvent = await event.findOneAndUpdate({
+                    _id: selectedEvent._id
+                }, {
+                    members: [...selectedEvent.members, message.author.tag]
+                }, {
+                    new: true
+                });
+                console.log(updatedEvent);
+                message.channel.send(`**${message.author.tag}** joined **${updatedEvent.event_name}** ${updatedEvent.max_occupancy? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')': ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
+            } catch (error) {
+                console.error(error.message);
+                message.reply("❌ Failed to join the event. Please try again later.");
+                return;
+            }
+        })();
+    });
+};
 
-module.exports = { createEvent, showEvents, joinEvent };
+// leave an event if participating
+// const leaveEvent = (message, args) => {
+//     if (isNaN(args[0]) || parseInt(args[0]) <= 0) {
+//         message.reply("❌ Invalid *event_num* argument");
+//         return;
+//     }
+//     const eventNum = parseInt(args[0]);
+// };
+
+// fetch all server events
+const fetchEvents = async (serverId, callback) => {
+    try {
+        const events = await event.find({
+            server_id: serverId
+        });
+        callback(events);
+    } catch (error) {
+        console.error(error.message);
+        message.reply("❌ Server-side error occurred. Please try again");
+    }
+};
+
+module.exports = {
+    createEvent,
+    showEvents,
+    joinEvent
+};
