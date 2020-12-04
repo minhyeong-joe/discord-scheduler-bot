@@ -26,6 +26,5 @@ const COMMANDS = {
     MENTION_ALT: "@",
 };
 
-const HELP_MESSAGE = `Available Commands: \n$${COMMANDS.CREATE} <event_name> <time> <max_occupancy:optional> - create an event at specified time \n\t<time> format: 'yyyy.mm.dd hh:mm am/pm' or 'yyyy-mm-dd hh:mm am/pm' \n$${COMMANDS.SHOW} - shows the list of active events. \n$${COMMANDS.JOIN} <event_num> - joins the event associated with <event_num> (as shown in list of events). \n$${COMMANDS.LEAVE} <event_num> - leaves the event associated with <event_num> (as shown in list of events). \n$${COMMANDS.MENTION} OR $${COMMANDS.MENTION_ALT} <event_num> <message:optional> - sends message to event members.`
 
-module.exports = { COMMANDS, HELP_MESSAGE };
+module.exports = COMMANDS;

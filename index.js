@@ -2,8 +2,8 @@ require('dotenv').config();
 const discord = require('discord.js');
 const mongoose = require('mongoose');
 
-const { COMMANDS, HELP_MESSAGE } = require('./src/commands.js');
-const { createEvent, showEvents } = require('./src/bot');
+const COMMANDS = require('./src/commands.js');
+const { showHelp, createEvent, showEvents } = require('./src/bot');
 
 const client = new discord.Client();
 
@@ -28,7 +28,7 @@ client.on('message', (message) => {
     // check for command validity and execute if valid
     switch (CMD) {
         case COMMANDS.HELP:
-            message.reply(HELP_MESSAGE, {code:true});
+            showHelp(message);
             break;
         case COMMANDS.CREATE:
             createEvent(message, args);
