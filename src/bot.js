@@ -4,45 +4,34 @@ const {
     events
 } = require('./models/event.js');
 
+// createEvent invalid types (enum)
+const INVALID_TYPE = {
+    NOT_ENOUGH_ARGS: -1,
+    MAX_OCCUPANCY: -2
+};
+
 // create and add an event
 const createEvent = (message, args) => {
-    let time;
-    // validate args
-    if (args.length < 2) {
-        message.reply("❌ Not enough arguments");
-        return;
-    }
-    // datetime regex check and generate utc date object from variants of datetime string
-    // fulldate regex: yyyy-(m)m-(d)d (h)h(:(m)m)( )[am|pm]
-    const fullDateRegex = /^(19[0-9]{2}|2[0-9]{3})-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|30|31) ((0?[0-9])|(1[12]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/i;
-    // time regex: (h)h(:(m)m)( )[am|pm]
-    const timeRegex = /^((0?[0-9])|(1[12]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/i;
-
-    // if user entered full datetime (ex. "2020-12-04 5:00 pm", "2020.12.4 5:00 pm")
-    if (fullDateRegex.test(args[1])) {
-        console.log("valid full datetime");
-        time = moment(args[1], "yyyy-MM-DD hh:mm A").toDate();
-    }
-    // if user entered time only (ex. "5:00 pm", "11:00 AM", "5pm", "5:00pm")
-    else if (timeRegex.test(args[1])) {
-        console.log("valid time");
-        time = moment(args[1], "hh:mm A").toDate();
-    }
-    // all other formats, reject
-    else {
-        message.reply("❌ Invalid time arguments");
-        return;
+    // validate arguments
+    switch (validateCreateEvent(args)) {
+        case INVALID_TYPE.NOT_ENOUGH_ARGS:
+            message.reply("❌ Not enough arguments.");
+            return;
+        case INVALID_TYPE.MAX_OCCUPANCY:
+            message.reply("❌ Invalid max_occupancy argument. It must be a valid number.");
+            return;
     }
 
+    // parse datetime input to datetime object
+    const time = parseTime(args[1]);
+    // validate time (time is null if not valid format)
+    if (!time) {
+        message.reply("❌ Invalid date,time format.");
+        return;
+    }
     // if set time is in the past, fail
     if (time < Date.now()) {
-        message.reply("❌ Failed to generate event in the past. (check your date&time)");
-        return;
-    }
-
-    // if optional max_occupancy is passed in, then it must be an integer
-    if (args.length > 2 && isNaN(args[2])) {
-        message.reply("❌ Invalid max_occupancy argument. It must be an integer");
+        message.reply("❌ Failed to generate future event in the past. (check your date, time)");
         return;
     }
     // generate new event
@@ -147,6 +136,39 @@ const joinEvent = (message, args) => {
 //     }
 //     const eventNum = parseInt(args[0]);
 // };
+
+// validate createEvent() arguments
+const validateCreateEvent = (args) => {
+    if (args.length < 2) {
+        return INVALID_TYPE.NOT_ENOUGH_ARGS;
+    }
+    if (args.length > 2 && isNaN(args[2])) {
+        return INVALID_TYPE.MAX_OCCUPANCY;
+    }
+    return;
+};
+
+// parse datetime input to datetime object
+const parseTime = (rawTime) => {
+    // datetime regex check and generate utc date object from variants of datetime string
+    // fulldate regex: yyyy-(m)m-(d)d (h)h(:(m)m)( )[am|pm]
+    const fullDateRegex = /^(19[0-9]{2}|2[0-9]{3})-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|30|31) ((0?[0-9])|(1[12]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/i;
+    // time regex: (h)h(:(m)m)( )[am|pm]
+    const timeRegex = /^((0?[0-9])|(1[12]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/i;
+
+    // if user entered full datetime (ex. "2020-12-04 5:00 pm", "2020.12.4 5:00 pm")
+    if (fullDateRegex.test(rawTime)) {
+        console.log("valid full datetime");
+        return moment(rawTime, "yyyy-MM-DD hh:mm A").toDate();
+    }
+    // if user entered time only (ex. "5:00 pm", "11:00 AM", "5pm", "5:00pm")
+    if (timeRegex.test(rawTime)) {
+        console.log("valid time");
+        return moment(rawTime, "hh:mm A").toDate();
+    }
+    // all other formats, reject
+    return null;
+}
 
 // fetch all server events
 const fetchEvents = async (serverId, callback) => {
