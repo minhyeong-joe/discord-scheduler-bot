@@ -3,7 +3,7 @@ const discord = require('discord.js');
 const mongoose = require('mongoose');
 
 const { COMMANDS, HELP_MESSAGE } = require('./src/commands.js');
-const { createEvent } = require('./src/bot');
+const { createEvent, showEvents } = require('./src/bot');
 
 const client = new discord.Client();
 
@@ -31,10 +31,10 @@ client.on('message', (message) => {
             message.reply(HELP_MESSAGE, {code:true});
             break;
         case COMMANDS.CREATE:
-            createEvent(message, args)
+            createEvent(message, args);
             break;
         case COMMANDS.SHOW:
-            message.reply("Here's the list of events (placeholder)");
+            showEvents(message);
             break;
         case COMMANDS.JOIN:
             message.reply("Joined a group (placeholder)");

@@ -44,8 +44,7 @@ const createEvent = (message, args) => {
     (async () => {
         try {
             const res = await newEvent.save();
-            console.log(res);
-            message.reply(`Created an event '${res.event_name}'${res.max_occupancy? '(1/' + res.max_occupancy + ')': ''} - ${moment(res.time).local().format("YYYY-MM-DD ddd h:mm A")}.`);
+            message.reply(`:white_check_mark: Created an event **${res.event_name}** ${res.max_occupancy? '(1/' + res.max_occupancy + ')': ''} - ${moment(res.time).local().format("YYYY-MM-DD ddd h:mm A")}.`);
         } catch (error) {
             console.error(error.message);
             message.reply("Server-side error occurred. Please try again");
@@ -53,4 +52,30 @@ const createEvent = (message, args) => {
     })();
 }
 
-module.exports = { createEvent };
+const showEvents = (message) => {
+    // fetch events from DB
+    (async () => {
+        try {
+            const events = await event.find();
+            const eventFields = events.map((event, index) => {
+                const members = event.members.join(", ");
+                return {
+                    name: `${index+1}. ${event.event_name} ${event.max_occupancy? '(' + event.members.length + '/' + event.max_occupancy + ')' : ''}`,
+                    value: `${moment(event.time).local().format("YYYY-MM-DD ddd h:mm A")}\n${members}`
+                }
+            });
+            console.log(eventFields);
+            message.channel.send({embed: {
+                color: 3447003,
+                title: ":notepad_spiral: **List of Events**",
+                fields: eventFields,
+                timestamp: new Date()
+            }});
+        } catch (error) {
+            console.error(error.message);
+            message.reply("Server-side error occurred. Please try again");
+        }
+    })();
+}
+
+module.exports = { createEvent, showEvents };
