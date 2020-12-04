@@ -1,4 +1,4 @@
-const { createEvent, showEvents } = require('./bot.js');
+const { createEvent, showEvents, joinEvent } = require('./bot.js');
 
 // prefix for bot commands
 const PREFIX = "$";
@@ -17,7 +17,7 @@ const commands = {
     // $create <event_name> <time (yyyy.mm.dd hh:mm am/pm)> <max_occupancy:optional>
     create: {
         alias: "create",
-        description: "Create an event at specified time.\nEvent name with spaces must be enclosed in double quotes (ie. \"event name with spaces\").\n**Time Format:** 'yyyy.mm.dd hh:mm am/pm' or 'yyyy-mm-dd hh:mm am/pm'",
+        description: 'Create an event at specified time.\nEvent name with spaces must be enclosed in double quotes (ie. "event name with spaces").\n**Valid Time Formats:** "yyyy-mm-dd hh:mm am/pm", "hh:mm am/pm", "hhAM/PM".\n**Examples:** "2020-12-5 7:00 PM", "2020-12-5 7pm", "7pm", "7:00 PM" (*default to TODAY if no date provided*) ',
         execute: createEvent
     },
     
@@ -32,6 +32,7 @@ const commands = {
     join: {
         alias: "join",
         description: "Joins the event associated with *<event_num>* (as shown in list of events).",
+        execute: joinEvent
     },
 
     // $leave <event_num>
