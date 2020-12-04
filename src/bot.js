@@ -1,38 +1,19 @@
 const event = require('./models/event.js');
 const moment = require('moment');
-const COMMANDS = require('./commands');
-
-const showHelp = (message) => {
-    message.reply({embed: {
-        color: 3447003,
-        title: "Schduler Bot Commands",
-        fields: [
-            {
-                name: `**$${COMMANDS.CREATE}** *<event_name>* *<time>* *<max_occupancy:optional>*`,
-                value: "Create an event at specified time.\n**Time Format:** 'yyyy.mm.dd hh:mm am/pm' or 'yyyy-mm-dd hh:mm am/pm'"
-            },
-            {
-                name: `**$${COMMANDS.SHOW}**`,
-                value: "Shows the list of active events."
-            },
-            {
-                name: `**$${COMMANDS.JOIN}** *<event_num>*`,
-                value: "Joins the event associated with *<event_num>* (as shown in list of events)."
-            },
-            {
-                name: `**$${COMMANDS.LEAVE}** *<event_num>*`,
-                value: "Leaves the event associated with *<event_num>* (as shown in list of events)."
-            },
-            {
-                name: `**$${COMMANDS.MENTION}** *<event_num>* *<message:optional>* \n**$${COMMANDS.MENTION_ALT}** *<event_num>* *<message:optional>*`,
-                value: "Sends message to event members."
-            }
-        ]
-    }});
-}
 
 const createEvent = (message, args) => {
     let time;
+    // handle event name with spaces
+    if (args[0].startsWith('"')) {
+        const endIndex = args.findIndex(arg => arg.endsWith('"'));
+        if (endIndex > 0) {
+            args[0] = args[0].slice(1, args[0].length);
+            args[endIndex] = args[endIndex].slice(0, args[endIndex].length-1);
+            const nameWithSpaces = args.slice(0, endIndex+1).join(" ");
+            args = args.slice(endIndex+1, args.length);
+            args = [nameWithSpaces, ...args];
+        } 
+    }
     // validate args
     // date regex: yyyy-(M)M-(D)D or yyyy.(M)M.(D)D
     const dateRegex = /^(19[0-9]{2}|2[0-9]{3})[-.](0?[1-9]|1[012])[-.](0?[1-9]|[12][0-9]|30|31)$/;
@@ -40,23 +21,23 @@ const createEvent = (message, args) => {
     const timeRegex = /^((0?[0-9])|(1[12]))[:-](([1-5][0-9])|(0?[0-9]))$/;
 
     if (args.length < 4) {
-        message.reply(":x: Not enough arguments (refer to $help)");
+        message.reply(":x: Not enough arguments");
         return;
     }
     if (args.length > 5) {
-        message.reply(":x: Too many arguments (refer to $help)");
+        message.reply(":x: Too many arguments");
         return;
     }
 
     if (!dateRegex.test(args[1]) || !timeRegex.test(args[2]) || (args[3].toLowerCase() !== "am" && args[3].toLowerCase() !== "pm")) {
-        message.reply(":x: Invalid time arguments (refer to $help)");
+        message.reply(":x: Invalid time arguments");
         return;
     }
     const timeString = args.slice(1, 4).join(" ");
     try {
         time = new Date(timeString);
     } catch (error) {
-        message.reply(":x: Failed to generate time with given time arguments (refer to $help)");
+        message.reply(":x: Failed to generate time with given time arguments");
         return;
     }
     // if set time is in the past, fail
@@ -114,4 +95,4 @@ const showEvents = (message) => {
     })();
 }
 
-module.exports = { showHelp, createEvent, showEvents };
+module.exports = { createEvent, showEvents };

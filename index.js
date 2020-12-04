@@ -2,12 +2,9 @@ require('dotenv').config();
 const discord = require('discord.js');
 const mongoose = require('mongoose');
 
-const COMMANDS = require('./src/commands.js');
-const { showHelp, createEvent, showEvents } = require('./src/bot');
+const { PREFIX, commands } = require('./src/commands.js');
 
 const client = new discord.Client();
-
-const PREFIX = "$";
 
 // db connection
 mongoose.connect(process.env.DB_URL, { useNewUrlParser:true, useFindAndModify: false, useUnifiedTopology: true })
@@ -26,28 +23,29 @@ client.on('message', (message) => {
     console.log(args);
 
     // check for command validity and execute if valid
+    const { help, create, show, join, leave, mention } = commands;
     switch (CMD) {
-        case COMMANDS.HELP:
-            showHelp(message);
+        case help.alias:
+            help.execute(message);
             break;
-        case COMMANDS.CREATE:
-            createEvent(message, args);
+        case create.alias:
+            create.execute(message, args);
             break;
-        case COMMANDS.SHOW:
-            showEvents(message);
+        case show.alias:
+            show.execute(message);
             break;
-        case COMMANDS.JOIN:
+        case join.alias:
             message.reply("Joined a group (placeholder)");
             break;
-        case COMMANDS.LEAVE:
+        case leave.alias:
             message.reply("Left a group (placeholder)");
             break;
-        case COMMANDS.MENTION:
-        case COMMANDS.MENTION_ALT:
+        case mention.alias:
+        case mention.alt:
             message.reply("Mention event members (placeholder)");
             break;
         default:
-            message.reply("Unrecognized command. Please type in '$help' for list of commands.");
+            message.reply(`Unrecognized command. Please type in '${PREFIX}${help.alias}' for list of commands.`);
     }
 })
 
