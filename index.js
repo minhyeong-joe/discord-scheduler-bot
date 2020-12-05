@@ -52,7 +52,7 @@ client.on('message', (message) => {
             break;
         case mention.alias:
         case mention.alt:
-            message.reply("Mention event members (placeholder)");
+            mention.execute(message, parsed.arguments);
             break;
         case remove.alias:
             remove.execute(message, parsed.arguments);

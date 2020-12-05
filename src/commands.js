@@ -3,7 +3,8 @@ const {
     showEvents,
     joinEvent,
     leaveEvent,
-    deleteEvent
+    deleteEvent,
+    mentionMembers
 } = require('./bot.js');
 
 // prefix for bot commands
@@ -59,7 +60,8 @@ const commands = {
     mention: {
         alias: "mention",
         alt: "@",
-        description: "Sends message to event members."
+        description: "Sends message to event members.",
+        execute: mentionMembers
     }
 };
 

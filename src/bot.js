@@ -39,6 +39,7 @@ const createEvent = (message, args) => {
         server_id: message.guild.id,
         event_name: args[0],
         members: [message.author.tag],
+        members_id: [message.author.id],
         time: time,
         max_occupancy: args.length > 2 ? args[2] : null
     });
@@ -103,7 +104,7 @@ const joinEvent = (message, args) => {
         // add to the members
         (async () => {
             try {
-                const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: [...selectedEvent.members, message.author.tag] }, { new: true });
+                const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: [...selectedEvent.members, message.author.tag], members_id: [...selectedEvent.members_id, message.author.id] }, { new: true });
                 console.log(updatedEvent);
                 message.channel.send(`**${message.author.tag}** joined **${updatedEvent.event_name}** ${updatedEvent.max_occupancy ? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')' : ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
             } catch (error) {
@@ -137,7 +138,7 @@ const leaveEvent = (message, args) => {
         // remove member from event and update
         (async () => {
             try {
-                const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: selectedEvent.members.filter(member => member !== message.author.tag) }, { new: true });
+                const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: selectedEvent.members.filter(member => member !== message.author.tag), members_id: selectedEvent.members_id.filter(id => id !== message.author.id) }, { new: true });
                 message.channel.send(`**${message.author.tag}** left **${updatedEvent.event_name}** ${updatedEvent.max_occupancy ? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')' : ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
                 // if event becomes empty after last member leaves, disband the event
                 if (updatedEvent.members.length < 1) {
@@ -192,6 +193,33 @@ const deleteEvent = (message, args) => {
     });
 };
 
+// mention all members in the selected event
+// args[0]: event_num
+// args[1:]: message (join them all as single message)
+const mentionMembers = (message, args) => {
+    const eventNum = parseInt(args[0]);
+    if (isNaN(eventNum) || eventNum <= 0) {
+        message.reply("❌ Invalid *event_num* argument");
+        return;
+    }
+    const DEFAULT_MENTION = "Assemble!";
+    const msg = args.length > 1 ? args.slice(1, args.length).join(" ") : DEFAULT_MENTION;
+    // fetch server events
+    fetchEvents(message.guild.id, (events) => {
+        const selectedEvent = events[eventNum - 1];
+        if (!selectedEvent) {
+            message.reply("❌ Given event number does not exist.");
+            return;
+        }
+        // create mention string (excluding self)
+        const mentions = selectedEvent.members_id.filter(id => id !== message.author.id).map(id => {
+            return '<@'.concat(id).concat('>');
+        }).join(" ");
+        console.log(mentions);
+        message.channel.send(`**${selectedEvent.event_name}** (${moment(selectedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")})\n${mentions}, ${msg}`);
+    });
+}
+
 // validate createEvent() arguments
 const validateCreateEvent = (args) => {
     if (args.length < 2) {
@@ -243,5 +271,6 @@ module.exports = {
     showEvents,
     joinEvent,
     leaveEvent,
-    deleteEvent
+    deleteEvent,
+    mentionMembers
 };
