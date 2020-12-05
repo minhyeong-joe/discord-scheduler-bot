@@ -105,7 +105,6 @@ const joinEvent = (message, args) => {
         (async () => {
             try {
                 const updatedEvent = await event.findByIdAndUpdate(selectedEvent._id, { members: [...selectedEvent.members, message.author.tag], members_id: [...selectedEvent.members_id, message.author.id] }, { new: true });
-                console.log(updatedEvent);
                 message.channel.send(`**${message.author.tag}** joined **${updatedEvent.event_name}** ${updatedEvent.max_occupancy ? '(' + updatedEvent.members.length + '/' + updatedEvent.max_occupancy + ')' : ''} - ${moment(updatedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
             } catch (error) {
                 console.error(error.message);
@@ -215,7 +214,6 @@ const mentionMembers = (message, args) => {
         const mentions = selectedEvent.members_id.filter(id => id !== message.author.id).map(id => {
             return '<@'.concat(id).concat('>');
         }).join(" ");
-        console.log(mentions);
         message.channel.send(`**${selectedEvent.event_name}** (${moment(selectedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")})\n${mentions}, ${msg}`);
     });
 }
@@ -241,12 +239,10 @@ const parseTime = (rawTime) => {
 
     // if user entered full datetime (ex. "2020-12-04 5:00 pm", "2020.12.4 5:00 pm")
     if (fullDateRegex.test(rawTime)) {
-        console.log("valid full datetime");
         return moment(rawTime, "yyyy-MM-DD hh:mm A").toDate();
     }
     // if user entered time only (ex. "5:00 pm", "11:00 AM", "5pm", "5:00pm")
     if (timeRegex.test(rawTime)) {
-        console.log("valid time");
         return moment(rawTime, "hh:mm A").toDate();
     }
     // all other formats, reject
