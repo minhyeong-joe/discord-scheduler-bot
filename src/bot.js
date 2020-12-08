@@ -1,14 +1,23 @@
-const event = require('./models/event.js');
 const moment = require('moment');
-const {
-    events
-} = require('./models/event.js');
+
+const event = require('./models/event.js');
+const { createSchedule } = require('./scheduler.js');
+
+// notification time constants
+const REMINDER_MINUTES = 15;       // remind certain minutes before event time
+const MS_PER_MINUTE = 60_000;      // Microseconds in a minute (for easier datetime calculation)
 
 // createEvent invalid types (enum)
 const INVALID_TYPE = {
     NOT_ENOUGH_ARGS: -1,
     MAX_OCCUPANCY: -2
 };
+
+// reminder reference by eventID
+let reminders = {};
+
+// eventStart reference by eventID
+let eventStarts = {};
 
 // create and add an event
 const createEvent = (message, args) => {
@@ -48,6 +57,9 @@ const createEvent = (message, args) => {
         try {
             const res = await newEvent.save();
             message.channel.send(`@everyone **${message.author.tag}** created an event **${res.event_name}** ${res.max_occupancy ? '(1/' + res.max_occupancy + ')' : ''} - ${moment(res.time).local().format("YYYY-MM-DD ddd h:mm A")} :white_check_mark:`);
+            // set up reminders
+            reminders[res._id] = createSchedule(new Date(time - REMINDER_MINUTES * MS_PER_MINUTE), () => remind(message, res._id));
+            eventStarts[res._id] = createSchedule(time, () => eventStart(message, res._id));
         } catch (error) {
             console.error(error.message);
             message.reply("❌ Server-side error occurred. Please try again");
@@ -261,6 +273,33 @@ const fetchEvents = async (serverId, callback) => {
         message.reply("❌ Server-side error occurred. Please try again");
     }
 };
+
+const remind = async (message, eventId) => {
+    // fetch the member IDs in the event
+    const selectedEvent = await event.findById(eventId);
+    const mentions = selectedEvent.members_id.map(id => {
+        return '<@'.concat(id).concat('>');
+    }).join(" ");
+    message.channel.send(`${mentions}\nEVENT REMINDER: It is ${REMINDER_MINUTES} minutes prior to the event **${selectedEvent.event_name}**.`);
+}
+
+const eventStart = async (message, eventId) => {
+    // fetch the member IDs in the event
+    const selectedEvent = await event.findById(eventId);
+    const mentions = selectedEvent.members_id.map(id => {
+        return '<@'.concat(id).concat('>');
+    }).join(" ");
+    message.channel.send(`${mentions}\nIt is time for the event **${selectedEvent.event_name}** to start.`);
+    // remove event from list
+    (async () => {
+        try {
+            await event.findByIdAndDelete(selectedEvent._id);
+        } catch (error) {
+            console.error(error.message);
+            message.reply("❌ Server-side error occurred. Please manually remove the event.");
+        }
+    })();
+}
 
 module.exports = {
     createEvent,
