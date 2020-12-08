@@ -69,7 +69,8 @@ const commands = {
 const embededHelp = {
     embed: {
         color: 3447003,
-        title: "Schduler Bot Commands",
+        title: "Schduler Bot Documentation",
+        url: 'https://github.com/minhyeong-joe/discord-scheduler-bot',
         fields: [{
             name: `${PREFIX}${commands.help.alias}`,
             value: commands.help.description
