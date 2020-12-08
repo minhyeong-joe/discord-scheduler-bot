@@ -1,6 +1,7 @@
 const moment = require('moment');
 
 const event = require('./models/event.js');
+const scheduler = require('./scheduler.js');
 const { createSchedule } = require('./scheduler.js');
 
 // notification time constants
@@ -156,6 +157,11 @@ const leaveEvent = (message, args) => {
                     try {
                         const deletedEvent = await event.findByIdAndDelete(updatedEvent._id);
                         message.channel.send(`**${deletedEvent.event_name}** (${moment(deletedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")}) has been removed :poop:`);
+                        // remove the scheduled reminders
+                        scheduler.removeSchedule(reminders[deletedEvent._id]);
+                        scheduler.removeSchedule(eventStarts[deletedEvent._id]);
+                        delete reminders[deletedEvent._id];
+                        delete eventStarts[deletedEvent._id];
                     } finally { }
                 }
             } catch (error) {
@@ -196,6 +202,11 @@ const deleteEvent = (message, args) => {
             try {
                 const deletedEvent = await event.findByIdAndDelete(selectedEvent._id);
                 message.channel.send(`**${deletedEvent.event_name}** (${moment(deletedEvent.time).local().format("YYYY-MM-DD ddd h:mm A")}) has been removed :poop:`);
+                // delete reminders
+                scheduler.removeSchedule(reminders[deletedEvent._id]);
+                scheduler.removeSchedule(eventStarts[deletedEvent._id]);
+                delete reminders[deletedEvent._id];
+                delete eventStarts[deletedEvent._id];
             } catch (error) {
                 console.error(error.message);
                 message.reply("❌ Server-side error occurred. Please try again");
@@ -281,6 +292,7 @@ const remind = async (message, eventId) => {
         return '<@'.concat(id).concat('>');
     }).join(" ");
     message.channel.send(`${mentions}\nEVENT REMINDER: It is ${REMINDER_MINUTES} minutes prior to the event **${selectedEvent.event_name}**.`);
+    delete reminders[eventId];
 }
 
 const eventStart = async (message, eventId) => {
@@ -299,6 +311,7 @@ const eventStart = async (message, eventId) => {
             message.reply("❌ Server-side error occurred. Please manually remove the event.");
         }
     })();
+    delete eventStarts[eventId];
 }
 
 module.exports = {

@@ -7,11 +7,15 @@ const createSchedule = (datetime, callback) => {
 };
 
 const invokeSchedule = scheduleName => {
-    scheduleName.start();
+    if (scheduleName) {
+        scheduleName.start();
+    }
 }
 
 const removeSchedule = scheduleName => {
-    scheduleName.destroy();
+    if (scheduleName) {
+        scheduleName.destroy();
+    }
 }
 
 const parseTime = (datetime) => {
