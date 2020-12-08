@@ -105,10 +105,10 @@ const joinEvent = (message, args) => {
             return;
         }
         // check for duplicate join
-        // if (selectedEvent.members.includes(message.author.tag)) {
-        //     message.reply("❌ You are already in the selected event.");
-        //     return;
-        // }
+        if (selectedEvent.members.includes(message.author.tag)) {
+            message.reply("❌ You are already in the selected event.");
+            return;
+        }
         // check for max_occupancy
         if (selectedEvent.max_occupancy && selectedEvent.members.length >= selectedEvent.max_occupancy) {
             message.reply(":slight_frown: The selected event is already full.");
