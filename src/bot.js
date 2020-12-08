@@ -6,7 +6,7 @@ const { createSchedule } = require('./scheduler.js');
 
 // notification time constants
 const REMINDER_MINUTES = 15;       // remind certain minutes before event time
-const MS_PER_MINUTE = 60_000;      // Microseconds in a minute (for easier datetime calculation)
+const MS_PER_MINUTE = 60000;      // Microseconds in a minute (for easier datetime calculation)
 
 // createEvent invalid types (enum)
 const INVALID_TYPE = {
@@ -256,9 +256,9 @@ const validateCreateEvent = (args) => {
 const parseTime = (rawTime) => {
     // datetime regex check and generate utc date object from variants of datetime string
     // fulldate regex: yyyy-(m)m-(d)d (h)h(:(m)m)( )[am|pm]
-    const fullDateRegex = /^(19[0-9]{2}|2[0-9]{3})-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|30|31) ((0?[0-9])|(1[12]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/i;
+    const fullDateRegex = /^(19[0-9]{2}|2[0-9]{3})-(0?[1-9]|1[012])-(0?[1-9]|[12][0-9]|30|31) ((0?[0-9])|(1[012]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/im;
     // time regex: (h)h(:(m)m)( )[am|pm]
-    const timeRegex = /^((0?[0-9])|(1[12]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/i;
+    const timeRegex = /^((0?[0-9])|(1[012]))(:(([1-5][0-9])|(0?[0-9])))? ?[ap]m$/im;
 
     // if user entered full datetime (ex. "2020-12-04 5:00 pm", "2020.12.4 5:00 pm")
     if (fullDateRegex.test(rawTime)) {
